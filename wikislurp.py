@@ -24,17 +24,21 @@ import sys
 
 ## Variables to set
 wikiurl = "http://en.wikipedia.org/w/api.php" #set this to whatever your mediawiki API URL is
-variables_filename = "/home/dan/wikislurp/variables.txt" # set this to where you want the variables.txt to be saved
+variables_filename = "variables.txt" # set this to where you want the variables.txt to be saved
 
 ## Grabs timestamp from variables.txt and adds a second to the timestamp
-variables_file = open(variables_filename, "r")
-end_timestamp = variables_file.read().strip()
-variables_file.close()
-end_timestamp = strptime(end_timestamp,'%Y-%m-%dT%H:%M:%SZ')
-end_timestamp = mktime(end_timestamp)
-end_timestamp += 1
-end_timestamp = localtime(end_timestamp)
-end_timestamp = strftime('%Y-%m-%dT%H:%M:%SZ', end_timestamp)
+try:
+	variables_file = open(variables_filename, "r")
+	end_timestamp = variables_file.read().strip()
+	variables_file.close()
+	end_timestamp = strptime(end_timestamp,'%Y-%m-%dT%H:%M:%SZ')
+	end_timestamp = mktime(end_timestamp)
+	end_timestamp += 1
+	end_timestamp = localtime(end_timestamp)
+	end_timestamp = strftime('%Y-%m-%dT%H:%M:%SZ', end_timestamp)
+except IOError:
+	## If error reading the file, bootstrap the timestamp
+	end_timestamp = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime())
 
 ## Define the start timestamp
 start_timestamp = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime())
@@ -74,18 +78,15 @@ for change in changes:
 	else:
 		logaction = 'na'
 
-        print change["timestamp"] + "|type=" + change["type"] + "|ns=" + str(change['ns']) + "|title=" + change["title"] + "|user=" + change["user"] + "|rcid=" + str(change["rcid"]) + "|pageid=" + str(change["pageid"]) + "|revid=" + str(change["revid"]) + "|old_revid=" + str(change["old_revid"]) + "|oldlen=" + str(change["oldlen"]) + "|newlen=" + str(change["newlen"]) + "|minor=" + minor + "|redirect=" + redirect + "|logid=" + logid + "|logtype=" + logtype + "|logaction=" + logaction + "|comment=" + change["comment"]
+	print change["timestamp"] + "|type=" + change["type"] + "|ns=" + str(change['ns']) + "|title=" + change["title"] + "|user=" + change["user"] + "|rcid=" + str(change["rcid"]) + "|pageid=" + str(change["pageid"]) + "|revid=" + str(change["revid"]) + "|old_revid=" + str(change["old_revid"]) + "|oldlen=" + str(change["oldlen"]) + "|newlen=" + str(change["newlen"]) + "|minor=" + minor + "|redirect=" + redirect + "|logid=" + logid + "|logtype=" + logtype + "|logaction=" + logaction + "|comment=" + change["comment"]
 
-## Grab the first timestamp and add it to the variables.txt file to be used again (next time as end_timestamp) once the program runs again - sloppy, i know
-try:   
-        changes = json_response["query"]["recentchanges"]
-	changes.reverse()
-        for change in changes:
-                end_timestamp = change["timestamp"]
-                variables_file = open(variables_filename, "w")
-                variables_file.write(end_timestamp)
-                variables_file.close()
-                break
+## Grab the last timestamp and add it to the variables.txt file to be used again (next time as end_timestamp) once the program runs again - sloppy, i know 
+changes = json_response["query"]["recentchanges"]
+end_timestamp = changes[len(changes)-1]["timestamp"]
+try:
+	variables_file = open(variables_filename, "w")
+	variables_file.write(end_timestamp)
+	variables_file.close()
 except:
-        pass
-
+	print start_timestamp + "|status=Could not write to varaibles.txt"
+	pass
